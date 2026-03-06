@@ -7,7 +7,7 @@ Opens a centered floating terminal running `dyt --record`, waits for you to spea
 ## Requirements
 
 - [`dyt`](https://github.com/nicolasayotte/dictate-your-terms) binary on `PATH` in the environment that launches Neovim.
-- `stt-daemon` running before invoking the keymap.
+- `dyt-daemon` running before invoking the keymap.
 
 ## Installation
 
@@ -45,7 +45,7 @@ your `keymap` option (default `<leader>v`).
   },
   opts = {
     keymap     = '<leader>v',             -- trigger key; false to disable
-    daemon     = 'http://127.0.0.1:3030', -- stt-daemon base URL
+    daemon     = 'http://127.0.0.1:3030', -- dyt-daemon base URL
     win_width  = 0.5,                     -- float width as fraction of editor width
     win_height = 10,                      -- float height in rows
     border     = 'rounded',               -- nvim_open_win border style
@@ -91,7 +91,7 @@ All keys are optional. With lazy.nvim, pass options in `opts`; otherwise call
 | Option       | Type             | Default                   | Description                                            |
 |--------------|------------------|---------------------------|--------------------------------------------------------|
 | `keymap`     | `string\|false`  | `'<leader>v'`             | Key bound in normal and insert mode. `false` disables. |
-| `daemon`     | `string`         | `'http://127.0.0.1:3030'` | HTTP base URL of the running `stt-daemon`.             |
+| `daemon`     | `string`         | `'http://127.0.0.1:3030'` | HTTP base URL of the running `dyt-daemon`.             |
 | `win_width`  | `number`         | `0.5`                     | Float width as a fraction of the editor width.         |
 | `win_height` | `number`         | `10`                      | Float height in rows.                                  |
 | `border`     | `string`         | `'rounded'`               | Border style passed to `nvim_open_win`.                |

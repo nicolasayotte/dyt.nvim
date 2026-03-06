@@ -26,7 +26,7 @@ Thin Lua wrapper around the `dyt` CLI binary. Opens a centered floating terminal
 
 ## Notes
 
-- `stt-daemon` must already be running; the plugin does not start it
+- `dyt-daemon` must already be running; the plugin does not start it
 - `dyt` binary must be on PATH in the environment that launches Neovim (not just the shell)
 - Headless Neovim (CI, `--headless`) has no UI — `float_opts()` fails fast with a clear error
 - Re-entrancy is guarded by `M._recording`; a second keymap press is a no-op with a warning

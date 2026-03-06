@@ -23,7 +23,7 @@ cursor. Works from both normal and insert mode.
 ==============================================================================
 2. PREREQUISITES                                               *dyt-prerequisites*
 
-- `stt-daemon` must be running before invoking the keymap.
+- `dyt-daemon` must be running before invoking the keymap.
 - The `dyt` binary must be on PATH in the environment that launches Neovim.
 
 ==============================================================================
@@ -65,7 +65,7 @@ keymap (string | false)                         default: `'<leader>v'`
 
                                                                *dyt-opt-daemon*
 daemon (string)                        default: `'http://127.0.0.1:3030'`
-  HTTP base URL of the running `stt-daemon`.
+  HTTP base URL of the running `dyt-daemon`.
 
                                                             *dyt-opt-win_width*
 win_width (number)                                              default: `0.5`

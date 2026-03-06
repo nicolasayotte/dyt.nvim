@@ -1,6 +1,6 @@
 # Getting Started
 
-> **AI Context Summary**: dyt.nvim requires the `dyt` CLI binary on PATH and a running `stt-daemon`
+> **AI Context Summary**: dyt.nvim requires the `dyt` CLI binary on PATH and a running `dyt-daemon`
 > process — the plugin does not manage either. For local development, clone the repo and point
 > lazy.nvim at the local directory using `dir =`. There are no build steps; all code is plain Lua
 > loaded directly by Neovim.
@@ -11,10 +11,10 @@
 |-------------|-------|
 | Neovim ≥ 0.9 | Needs `vim.fn.termopen`, `nvim_open_win` with `style='minimal'` |
 | `dyt` binary on PATH | From [DictateYourTerms](https://github.com/nicolasayotte/dictate-your-terms) |
-| `stt-daemon` running | Default: `http://127.0.0.1:3030` — must be started before invoking the keymap |
+| `dyt-daemon` running | Default: `http://127.0.0.1:3030` — must be started before invoking the keymap |
 | System clipboard | Neovim must have clipboard access (`+` register); `xclip`/`xsel` on Linux |
 
-The plugin fails gracefully if `dyt` is missing (error notify from `termopen`) or if `stt-daemon`
+The plugin fails gracefully if `dyt` is missing (error notify from `termopen`) or if `dyt-daemon`
 is not running (`dyt` exits non-zero → error notify). Neither condition crashes Neovim or
 corrupts state.
 
@@ -53,7 +53,7 @@ require('dyt').setup({ keymap = '<leader>v' })
 There is no automated test suite. Verification is done by running Neovim with the plugin loaded
 and exercising the dictation flow:
 
-1. Ensure `stt-daemon` is running.
+1. Ensure `dyt-daemon` is running.
 2. Open any writable buffer.
 3. Press `<leader>v` (or your configured keymap).
 4. Confirm the floating terminal opens and `dyt --record` starts.
@@ -64,7 +64,7 @@ and exercising the dictation flow:
 
 - Trigger from insert mode — confirm mode is restored and text inserts cleanly.
 - Trigger twice rapidly — second press should show "Already recording." warning.
-- Kill `stt-daemon` before triggering — confirm error notification and clean state reset.
+- Kill `dyt-daemon` before triggering — confirm error notification and clean state reset.
 - Trigger with `notify = false` — confirm silent operation, transcript still inserts.
 
 ## Updating Vimdoc
