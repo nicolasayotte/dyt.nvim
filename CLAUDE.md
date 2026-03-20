@@ -2,7 +2,7 @@
 
 **Mission:** Neovim plugin bridging the editor to DictateYourTerms — zero-latency voice dictation that inserts transcripts at the cursor.
 
-Thin Lua wrapper around the `dyt` CLI binary. Opens a centered floating terminal, runs `dyt --record`, then inserts the clipboard transcript on exit.
+Thin Lua wrapper around the `dyt` CLI binary. Opens a centered floating terminal, runs `dyt --record`, reads the transcript from a temp file (`--output`), then inserts it at the cursor on exit.
 
 ## About This Project
 
@@ -20,7 +20,7 @@ Thin Lua wrapper around the `dyt` CLI binary. Opens a centered floating terminal
 
 - `M._setup_called` flag makes `setup()` idempotent — `plugin/dyt.lua` must stay a no-op guard
 - State is always reset via `reset_state()` before side-effecting operations (e.g., `nvim_put`)
-- Transcript source is the system clipboard `+` register — `dyt` CLI writes there on exit
+- Transcript source is the temp file written by `dyt --output` — read via `vim.fn.readfile` in `on_exit`
 - All user-facing messages are prefixed `[dyt]` and gated by `M._config.notify`
 - New options must be added to `defaults` table, the options table in `doc/dyt.txt`, and `README.md`
 

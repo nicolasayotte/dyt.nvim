@@ -7,6 +7,8 @@ M._origin_win    = nil
 M._origin_mode   = nil
 M._float_win     = nil
 M._float_buf     = nil
+M._job_id        = nil
+M._output_file   = nil
 
 local defaults = {
   keymap     = '<leader>v',
@@ -45,11 +47,16 @@ local function float_opts()
 end
 
 local function reset_state()
+  if M._output_file then
+    vim.fn.delete(M._output_file)
+  end
   M._recording   = false
   M._origin_win  = nil
   M._origin_mode = nil
   M._float_win   = nil
   M._float_buf   = nil
+  M._job_id      = nil
+  M._output_file = nil
 end
 
 local function close_float()
@@ -71,9 +78,16 @@ local function on_exit(_, exit_code, _)
       return
     end
 
-    local transcript = vim.fn.getreg('+')
+    local output_file = M._output_file
+    if not output_file or vim.fn.filereadable(output_file) ~= 1 then
+      notify('Transcription output file not found.', vim.log.levels.ERROR)
+      reset_state()
+      return
+    end
 
-    if transcript == '' then
+    local lines = vim.fn.readfile(output_file)
+
+    if #lines == 0 or (#lines == 1 and lines[1] == '') then
       notify('Transcription returned empty text.', vim.log.levels.WARN)
       reset_state()
       return
@@ -88,7 +102,6 @@ local function on_exit(_, exit_code, _)
     -- cannot strand _recording = true and soft-lock the plugin.
     reset_state()
 
-    local lines = vim.split(transcript, '\n', { plain = true })
     vim.api.nvim_put(lines, 'c', true, true)
 
     notify('Dictation inserted.', vim.log.levels.INFO)
@@ -133,16 +146,27 @@ local function start_dictation()
   vim.wo[win].relativenumber = false
   vim.wo[win].signcolumn     = 'no'
 
-  local cmd = { 'dyt', '--record', '--daemon', M._config.daemon }
-  local ok, job_id = pcall(vim.fn.termopen, cmd, { on_exit = on_exit })
+  M._output_file = vim.fn.tempname()
 
-  if not ok or job_id <= 0 then
+  local cmd = {
+    'dyt', '--record',
+    '--daemon', M._config.daemon,
+    '--no-clipboard',
+    '--output', M._output_file,
+  }
+  local job_id = vim.fn.jobstart(cmd, {
+    term    = true,
+    on_exit = on_exit,
+  })
+
+  if job_id <= 0 then
     notify('Failed to start dyt. Is it installed and on PATH?', vim.log.levels.ERROR)
     close_float()
     reset_state()
     return
   end
 
+  M._job_id    = job_id
   M._recording = true
   notify('Recording... press Enter in the terminal to stop.', vim.log.levels.INFO)
 

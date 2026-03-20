@@ -24,7 +24,7 @@ identically.
 
 ## Module State
 
-All mutable state is stored in module-level fields on `M` (`lua/dyt/init.lua:3-8`):
+All mutable state is stored in module-level fields on `M` (`lua/dyt/init.lua:3-11`):
 
 ```lua
 M._setup_called  = false   -- idempotency guard for setup()
@@ -34,11 +34,14 @@ M._origin_win    = nil     -- window handle to return focus to after dictation
 M._origin_mode   = nil     -- 'n', 'i', etc. — mode at invocation time
 M._float_win     = nil     -- handle of the dictation float window
 M._float_buf     = nil     -- buffer backing the float window
+M._job_id        = nil     -- channel id returned by jobstart
+M._output_file   = nil     -- temp file path passed to dyt -o
 ```
 
-These fields are reset atomically by `reset_state()` (`lua/dyt/init.lua:47-53`). The reset must
-happen **before** `nvim_put` — if the paste fails (e.g. read-only buffer), `_recording` must
-already be `false` so the user can retry without restarting Neovim.
+These fields are reset atomically by `reset_state()` (`lua/dyt/init.lua:49-60`). The reset
+cleans up the temp output file and must happen **before** `nvim_put` — if the paste fails
+(e.g. read-only buffer), `_recording` must already be `false` so the user can retry without
+restarting Neovim.
 
 ## Lifecycle
 
@@ -52,9 +55,11 @@ start_dictation()
   ├─ Escape insert mode if active (feedkeys <Esc>)
   ├─ Create scratch buffer (nvim_create_buf)
   ├─ Open centered float (nvim_open_win)
-  ├─ Start terminal job: dyt --record --daemon <url>
+  ├─ Generate _output_file via tempname()
+  ├─ Start terminal job: dyt --record --daemon <url> --no-clipboard --output <tempfile>
+  │     (jobstart with term = true)
   │     ├─ FAIL → notify error, close_float(), reset_state(), return
-  │     └─ OK → set _recording = true, notify "Recording..."
+  │     └─ OK → set _job_id, _recording = true, notify "Recording..."
   └─ Enter terminal insert mode (startinsert)
 
 User speaks → presses Enter in terminal
@@ -64,17 +69,18 @@ on_exit() [vim.schedule callback]
   ├─ close_float()
   ├─ Non-zero exit code?
   │     └─ notify error, reset_state(), return
-  ├─ Read transcript from system clipboard (getreg '+')
-  ├─ Empty transcript? → notify warn, reset_state(), return
+  ├─ Read transcript from _output_file (vim.fn.readfile)
+  ├─ File missing or empty? → notify warn/error, reset_state(), return
   ├─ Restore _origin_win focus (nvim_set_current_win)
   ├─ reset_state()          ← BEFORE nvim_put (intentional ordering)
+  │     └─ Deletes the temp output file
   └─ Insert lines at cursor (nvim_put)
 ```
 
 ## Configuration Flow
 
 `M.setup(opts)` merges user-supplied opts over `defaults` using `vim.tbl_deep_extend('force', ...)`
-(`lua/dyt/init.lua:153-157`). All config is stored in `M._config` for the plugin's lifetime;
+(`lua/dyt/init.lua:187-191`). All config is stored in `M._config` for the plugin's lifetime;
 there is no runtime reconfiguration.
 
 ```lua
@@ -89,11 +95,11 @@ local defaults = {
 ```
 
 `keymap = false` (or `''`) suppresses binding entirely, enabling callers to bind
-`M.start_dictation` themselves (`lua/dyt/init.lua:144-151`).
+`M.start_dictation` themselves (`lua/dyt/init.lua:178-185`).
 
 ## Float Window Sizing
 
-`float_opts()` (`lua/dyt/init.lua:26-45`) computes a centered float each time a session starts
+`float_opts()` (`lua/dyt/init.lua:28-47`) computes a centered float each time a session starts
 (not cached), so editor resizes between sessions are handled automatically.
 
 ```lua
@@ -110,7 +116,7 @@ narrow. In headless Neovim (CI, `--headless`), `nvim_list_uis()` returns an empt
 
 ## Keymap Registration
 
-`register_keymap()` (`lua/dyt/init.lua:144-151`) sets both `n` and `i` mode mappings with
+`register_keymap()` (`lua/dyt/init.lua:178-185`) sets both `n` and `i` mode mappings with
 `noremap = true, silent = true`. The `i`-mode mapping relies on `start_dictation()` escaping
 insert mode via `feedkeys('<Esc>')` before opening the float — terminal buffers cannot be opened
 while in insert mode of a regular buffer.
@@ -119,9 +125,10 @@ while in insert mode of a regular buffer.
 
 | Failure point | Behaviour |
 |---------------|-----------|
-| `termopen` returns ≤ 0 | Error notify, `close_float()`, `reset_state()` |
+| `jobstart` returns ≤ 0 | Error notify, `close_float()`, `reset_state()` |
 | `dyt` exits non-zero | Error notify, `reset_state()` |
-| Transcript is empty string | Warn notify, `reset_state()` |
+| Output file missing | Error notify, `reset_state()` |
+| Transcript is empty | Warn notify, `reset_state()` |
 | `_origin_win` is invalid | Skip focus restore, proceed to paste |
 | Headless Neovim (no UI) | `float_opts()` raises immediately with clear message |
 
@@ -134,8 +141,8 @@ When adding features:
 
 1. **New config option** → add to `defaults` (`init.lua`), options table (`doc/dyt.txt`), and
    options table (`README.md`). All three must stay in sync.
-2. **New state field** → add to module-level declarations (`init.lua:3-8`) and include in
-   `reset_state()` (`init.lua:47-53`).
+2. **New state field** → add to module-level declarations (`init.lua:3-11`) and include in
+   `reset_state()` (`init.lua:49-60`).
 3. **New public API** → expose on `M`, document in `doc/dyt.txt` under section 7 (Lua API).
 
 ## Cross-References

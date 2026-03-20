@@ -116,8 +116,8 @@ Set `keymap = false` and bind `M.start_dictation` yourself:
 1. The keymap opens a centered floating terminal and runs `dyt --record`.
 2. Speak. Press Enter in the terminal to stop recording.
 3. The float closes automatically.
-4. The transcript is read from the system clipboard (`+` register) and inserted at the cursor.
-5. A re-entrancy guard prevents a second invocation while the float is open.
+4. The transcript is read from a temporary output file (`--output`) and inserted at the cursor. Clipboard use is suppressed (`--no-clipboard`).
+5. A re-entrancy guard prevents a second invocation while recording is active.
 6. On non-zero exit, an error notification is shown and state is cleaned up.
 
 ## License
